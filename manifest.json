@@ -1,0 +1,22 @@
+{
+    "name": "WhatsApp Web Logger",
+    "version": "1.0",
+    "description": "Logs WhatsApp Web messages internally",
+    "manifest_version": 3,
+    "permissions": ["scripting", "activeTab"],
+    "host_permissions": ["https://web.whatsapp.com/*"],
+    "content_scripts": [
+      {
+        "matches": ["https://web.whatsapp.com/*"],
+        "js": ["content.js"],
+        "run_at": "document_start"
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["inject.js"],
+        "matches": ["https://web.whatsapp.com/*"]
+      }
+    ]
+  }
+  
