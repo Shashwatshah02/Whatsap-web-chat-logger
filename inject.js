@@ -43,7 +43,7 @@
       let combinedLogs = [];
       collectedLogsByChat.forEach((messages, chatName) => {
         // messages.sort((a, b) => a.timestamp - b.timestamp);
-        combinedLogs.push(🔷 Chat: ${chatName}\n);
+        combinedLogs.push(`🔷 Chat: ${chatName}\n`);
         combinedLogs.push(...messages.map((m) => m.logEntry));
         combinedLogs.push("\n");
       });
@@ -115,7 +115,7 @@
     ) {
       if (!loggedBlobUrls.has(src)) {
         loggedBlobUrls.add(src);
-        console.log(🟢 Chat Image Blob URL: ${src});
+        console.log(`🟢 Chat Image Blob URL: ${src}`);
       }
       return src;
     }
@@ -139,7 +139,7 @@
     const src = videoElement.src || videoElement.querySelector("source")?.src;
     if (src && src.startsWith("blob:") && !loggedVideoBlobUrls.has(src)) {
       loggedVideoBlobUrls.add(src);
-      console.log(🔵 Chat Video Blob URL: ${src});
+      console.log(`🔵 Chat Video Blob URL: ${src}`);
       return src;
     }
     return null;
@@ -198,7 +198,7 @@
           const docSpan = msg.querySelector("span.x13faqbe._ao3e");
 
           const imageUrl = getRealImageUrl(imageElement); // ✅ Modified: Now supports blob extraction
-          const videoUrl = getRealVideoUrl(videoElement); 
+          const videoUrl = getRealVideoUrl(videoElement);
 
           const uniqueKey = `${timestampRaw}-${
             msgText ||
@@ -210,11 +210,11 @@
           chatMessages.uniqueKeys.add(uniqueKey);
 
           let logEntry = "📩 Message Log\n";
-          logEntry += 🕒 Time & Sender: ${timestampRaw}\n;
-          if (msgText) logEntry += 💬 Text: ${msgText}\n;
-          if (imageUrl) logEntry += 🖼 Image URL: ${imageUrl}\n;
-          if (videoUrl) logEntry += 🎥 Video URL: ${videoUrl}\n;
-          if (docSpan) logEntry += 📄 Document Detected\n;
+          logEntry += `🕒 Time & Sender: ${timestampRaw}\n`;
+          if (msgText) logEntry += `💬 Text: ${msgText}\n`;
+          if (imageUrl) logEntry += `🖼 Image URL: ${imageUrl}\n`;
+          if (videoUrl) logEntry += `🎥 Video URL: ${videoUrl}\n`;
+          if (docSpan) logEntry += `📄 Document Detected\n`;
           logEntry += "───────────────\n";
 
           chatMessages.push({ timestamp, logEntry });
@@ -226,10 +226,10 @@
 
       if (newLogsCount > 0) {
         console.log(
-          📝 Logged ${newLogsCount} new messages from chat: ${currentChat}
+          `📝 Logged ${newLogsCount} new messages from chat: ${currentChat}`
         );
       } else {
-        console.log(ℹ No new messages to log for chat: ${currentChat});
+        console.log(`ℹ No new messages to log for chat: ${currentChat}`);
       }
     } catch (err) {
       console.error("❌ Error logging chat messages:", err);
@@ -250,7 +250,7 @@
         lastLoggedTime = now;
         currentChat = chatTitle;
         console.log(
-          🕒 Chat changed to: ${chatTitle}, waiting 5 seconds to log...
+          `🕒 Chat changed to: ${chatTitle}, waiting 5 seconds to log...`
         );
         clearTimeout(logTimeout);
         logTimeout = setTimeout(() => {
@@ -271,7 +271,7 @@
   setInterval(() => {
     if (currentChat) {
       console.log(
-        ⏲ Periodic re-check for new messages in chat: ${currentChat}
+        `⏲ Periodic re-check for new messages in chat: ${currentChat}`
       );
       logCurrentChatMessages();
     }
@@ -290,5 +290,5 @@
     } catch (err) {
       console.error("❌ Error while waiting for main container:", err);
     }
-  }, 1000);
+  }, 1000);
 })();
