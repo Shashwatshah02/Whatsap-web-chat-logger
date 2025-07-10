@@ -1,6 +1,6 @@
 (function () {
   console.log(
-    "📥 WhatsApp Message Logger Active + 🖼 Image Blob Logger Integrated"
+    "📥 WhatsApp Message Logger Active + 🖼️ Image Blob Logger Integrated + File tracker !"
   );
 
   const collectedLogsByChat = new Map();
@@ -9,6 +9,87 @@
   let currentChat = null;
   let logTimeout = null;
   let lastLoggedTime = 0;
+
+  const startFileObserver = () => {
+    console.log("📂 Starting full file detection setup...");
+
+    function saveFileLocally(file) {
+      const blobUrl = URL.createObjectURL(file);
+      const a = document.createElement("a");
+    
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 19).replace(/[:T]/g, "-"); // YYYY-MM-DD_HH-MM-SS
+    
+      const newFileName = `_fileTrackerDownload_${dateStr}_${file.name}`;
+      a.href = blobUrl;
+      a.download = newFileName;
+      a.style.display = "none";
+    
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }
+    
+    
+  
+    const logFiles = (files, method) => {
+      for (const file of files) {
+        console.log(`📁 ${method} file attached: ${file.name}`);
+        saveFileLocally(file);
+      }
+    };
+  
+    // ✅ Drag-and-drop detection (capture phase ensures delivery)
+    document.addEventListener("dragover", (e) => e.preventDefault(), true);
+  
+    document.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (e.dataTransfer?.files?.length) {
+        logFiles(e.dataTransfer.files, "Drag-and-drop");
+      }
+    }, true);
+  
+    console.log("✅ Global drag & drop listener added to document.");
+  
+    // ✅ Attachment button input detection
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === 1) {
+            if (node.tagName === "INPUT" && node.type === "file") {
+              node.addEventListener("change", () => {
+                if (node.files?.length) {
+                  logFiles(node.files, "Attachment button");
+                }
+              });
+            } else {
+              node.querySelectorAll?.("input[type='file']").forEach((input) => {
+                input.addEventListener("change", () => {
+                  if (input.files?.length) {
+                    logFiles(input.files, "Attachment button");
+                  }
+                });
+              });
+            }
+          }
+        }
+      }
+    });
+  
+    if (document.body) {
+      observer.observe(document.body, { childList: true, subtree: true });
+      console.log("🚀 File monitoring is now live for WhatsApp Web!");
+    } else {
+      console.error("❌ document.body is not available yet for observer.");
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startFileObserver);
+  } else {
+    startFileObserver();
+  }
 
   function parseTimestamp(raw) {
     try {
@@ -34,15 +115,27 @@
     return new Date();
   }
 
-  function downloadLogs() {
+  // Auto-download logs every 3 hours
+  setInterval(() => {
+    console.log("⏳ Auto-download triggered every 3 hours.");
+    downloadLogs(false); // no alert
+  }, 3 * 60 * 60 * 1000);
+
+  // 💥 Download logs before tab/browser closes
+  window.addEventListener("beforeunload", () => {
+    downloadLogs(false); // silent download
+  });
+
+  // 💾 Reusable Download Logs Function
+  function downloadLogs(showAlert = true) {
     try {
       if (collectedLogsByChat.size === 0) {
-        alert("⚠ No logs to download yet!");
+        if (showAlert) alert("⚠️ No logs to download yet!");
         return;
       }
+
       let combinedLogs = [];
       collectedLogsByChat.forEach((messages, chatName) => {
-        // messages.sort((a, b) => a.timestamp - b.timestamp);
         combinedLogs.push(`🔷 Chat: ${chatName}\n`);
         combinedLogs.push(...messages.map((m) => m.logEntry));
         combinedLogs.push("\n");
@@ -54,17 +147,25 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `whatsapp_chat_logs_${new Date()
+
+      const prefix = showAlert
+        ? "whatsapp_chat_logs_"
+        : "whatsapp_chat_logs_autosave_";
+      a.download = `${prefix}${new Date()
         .toISOString()
         .replace(/[:.]/g, "-")}.txt`;
+      a.style.display = "none";
+      document.body.appendChild(a);
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("❌ Error downloading logs:", err);
-      alert("Failed to download logs. Check the console for details.");
+      if (showAlert)
+        alert("Failed to download logs. Check the console for details.");
     }
   }
 
+  // ⌨️ Manual shortcut (Ctrl+Shift+S)
   document.addEventListener("keydown", (event) => {
     try {
       const tag = document.activeElement?.tagName;
@@ -76,7 +177,7 @@
       ) {
         event.preventDefault();
         console.log("💾 Shortcut detected. Downloading logs...");
-        downloadLogs();
+        downloadLogs(true); // show alert if logs are empty
       }
     } catch (err) {
       console.error("❌ Error handling keyboard shortcut:", err);
@@ -134,16 +235,21 @@
     return null; // fallback: null if base64 only
   }
 
-  function getRealVideoUrl(videoElement) {
-    if (!videoElement) return null;
-    const src = videoElement.src || videoElement.querySelector("source")?.src;
-    if (src && src.startsWith("blob:") && !loggedVideoBlobUrls.has(src)) {
-      loggedVideoBlobUrls.add(src);
-      console.log(`🔵 Chat Video Blob URL: ${src}`);
-      return src;
+  function getRealVideoUrl(element) {
+    if (element) {
+      const style = element.getAttribute("style");
+      const match = style.match(/url\(["']?(.*?)["']?\)/);
+
+      if (match && match[1]) {
+        const imageUrl = match[1];
+        return imageUrl;
+      } else {
+        return element;
+      }
     }
-    return null;
   }
+
+
 
   function logCurrentChatMessages() {
     try {
@@ -194,17 +300,23 @@
             msg.querySelector("img[src^='blob:']") ||
             msg.querySelector("img[src^='https://']") ||
             msg.querySelector("img");
-          const videoElement = msg.querySelector("video");
-          const docSpan = msg.querySelector("span.x13faqbe._ao3e");
+          const videoElement = msg.querySelector(
+            'div.x10l6tqk.x1hhq9f1.xo29wiw.x1vjfegm.x1okw0bk.xh8yej3.x5yr21d.x121ad3m.x1y2vyrr.x1qp9xe7.xeykx7r.xztyhrg.x18d0r48.x14tgpju[style*="background-image"]'
+          );
+          // console.log(videoElement);
+          const docSpan = msg.querySelector(
+            'div.x10l6tqk.x1agz8ms.xiy17q3.x18d0r48.xso031l.x1q0q8m5.x1jpdw5n.x5yr21d.x10l6tqk.xh8yej3[style*="background-image"]'
+          );
 
           const imageUrl = getRealImageUrl(imageElement); // ✅ Modified: Now supports blob extraction
           const videoUrl = getRealVideoUrl(videoElement);
+          const docUrl = getRealVideoUrl(docSpan);
 
           const uniqueKey = `${timestampRaw}-${
             msgText ||
             imageUrl ||
             (videoElement ? "video" : "") ||
-            (docSpan ? "document" : "")
+            (docUrl ? "document" : "")
           }`;
           if (chatMessages.uniqueKeys.has(uniqueKey)) return;
           chatMessages.uniqueKeys.add(uniqueKey);
@@ -212,9 +324,9 @@
           let logEntry = "📩 Message Log\n";
           logEntry += `🕒 Time & Sender: ${timestampRaw}\n`;
           if (msgText) logEntry += `💬 Text: ${msgText}\n`;
-          if (imageUrl) logEntry += `🖼 Image URL: ${imageUrl}\n`;
+          if (imageUrl) logEntry += `🖼️ Image URL: ${imageUrl}\n`;
           if (videoUrl) logEntry += `🎥 Video URL: ${videoUrl}\n`;
-          if (docSpan) logEntry += `📄 Document Detected\n`;
+          if (docUrl) logEntry += `📄 Document URL: ${docUrl}\n`;
           logEntry += "───────────────\n";
 
           chatMessages.push({ timestamp, logEntry });
@@ -229,7 +341,7 @@
           `📝 Logged ${newLogsCount} new messages from chat: ${currentChat}`
         );
       } else {
-        console.log(`ℹ No new messages to log for chat: ${currentChat}`);
+        console.log(`ℹ️ No new messages to log for chat: ${currentChat}`);
       }
     } catch (err) {
       console.error("❌ Error logging chat messages:", err);
@@ -242,8 +354,8 @@
       if (now - lastLoggedTime < 2000) return;
 
       const chatTitle = document
-        .querySelector("header span[title]")
-        ?.getAttribute("title");
+        .querySelector("header span[dir='auto']")
+        ?.textContent?.trim();
       if (!chatTitle) return;
 
       if (chatTitle !== currentChat) {
@@ -271,7 +383,7 @@
   setInterval(() => {
     if (currentChat) {
       console.log(
-        `⏲ Periodic re-check for new messages in chat: ${currentChat}`
+        `⏲️ Periodic re-check for new messages in chat: ${currentChat}`
       );
       logCurrentChatMessages();
     }
